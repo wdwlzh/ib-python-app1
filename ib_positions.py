@@ -1,44 +1,51 @@
 from ib_insync import *
 import pandas as pd
 
-def get_positions():
-    # Create IB connection
-    ib = IB()
-    
+def get_positions(ib: IB = None):
+    """
+    Return positions as a pandas DataFrame.
+    If an IB instance is provided, reuse it; otherwise create a temporary connection.
+    """
+    own_ib = False
+    if ib is None:
+        ib = IB()
+        own_ib = True
+
     try:
-        # Connect to TWS (make sure TWS or IB Gateway is running)
-        # Port 7497 for TWS paper trading
-        # Port 7496 for TWS live trading
-        # Change port to 4001 for IB Gateway live trading
-        # Change port to 4002 for IB Gateway paper trading
-        ib.connect('host.docker.internal', 7498, clientId=1)
-        
-        # Get account positions
+        if not ib.isConnected():
+            # synchronous connect (run from main thread when possible)
+            ib.connect('host.docker.internal', 7498, clientId=1)
+
         positions = ib.positions()
-        
-        # Convert positions to a more readable format
+
         position_data = []
         for position in positions:
             data = {
-                'Symbol': position.contract.symbol,
-                'SecType': position.contract.secType,
-                'Exchange': position.contract.exchange,
-                'Currency': position.contract.currency,
+                'Account': position.account,
+                'Symbol': getattr(position.contract, 'symbol', None),
+                'SecType': getattr(position.contract, 'secType', None),
+                'Exchange': getattr(position.contract, 'exchange', None),
+                'Currency': getattr(position.contract, 'currency', None),
                 'Position': position.position,
-                'Avg Cost': position.avgCost
+                'AvgCost': position.avgCost
             }
             position_data.append(data)
-        
-        # Convert to pandas DataFrame for better display
+
         df = pd.DataFrame(position_data)
-        print("\nCurrent Positions:")
-        print(df)
-        
+        return df
+
     except Exception as e:
         print(f"Error: {str(e)}")
-    
+        return pd.DataFrame()
+
     finally:
-        ib.disconnect()
+        # only disconnect if we created the connection here
+        if own_ib:
+            try:
+                ib.disconnect()
+            except Exception:
+                pass
 
 if __name__ == '__main__':
-    get_positions()
+    df = get_positions()
+    print(df)

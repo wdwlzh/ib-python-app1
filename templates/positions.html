@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>IB Positions</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background:#f7f7f7; }
+        .card { background: #fff; padding: 20px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); max-width: 1000px; margin: 0 auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e6e6e6; }
+        th { background: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Current Positions</h2>
+        {% if positions %}
+        <table>
+            <tr>
+                <th>Account</th>
+                <th>Symbol</th>
+                <th>SecType</th>
+                <th>Exchange</th>
+                <th>Currency</th>
+                <th>Position</th>
+                <th>Avg Cost</th>
+            </tr>
+            {% for p in positions %}
+            <tr>
+                <td>{{ p.Account }}</td>
+                <td>{{ p.Symbol }}</td>
+                <td>{{ p.SecType }}</td>
+                <td>{{ p.Exchange }}</td>
+                <td>{{ p.Currency }}</td>
+                <td>{{ p.Position }}</td>
+                <td>{{ "%.2f"|format(p.AvgCost if p.AvgCost is not none else 0) }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+        <p>No positions found.</p>
+        {% endif %}
+    </div>
+</body>
+</html>
