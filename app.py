@@ -4,6 +4,7 @@ from flask import Flask, render_template, jsonify
 from ib_insync import IB
 from ib_positions import get_positions
 import atexit
+from ib_positions import get_account_info
 
 app = Flask(__name__)
 
@@ -38,7 +39,12 @@ def index():
     try:
         df = get_positions(ib=ib)
         positions = df.to_dict('records') if not df.empty else []
-        return render_template('positions.html', positions=positions)
+        acct_info = get_account_info(ib=ib)
+        managed_accounts = acct_info.get('managedAccounts', [])
+        account_values = acct_info.get('accountValues', {})
+        return render_template('positions.html', positions=positions,
+                               managed_accounts=managed_accounts,
+                               account_values=account_values)
     except Exception as e:
         return render_template('error.html', error=str(e)), 500
 
