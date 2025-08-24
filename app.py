@@ -1,6 +1,6 @@
 from datetime import datetime
 import os
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, redirect, url_for
 from ib_insync import IB
 from ib_positions import get_positions
 import atexit
@@ -33,18 +33,36 @@ def health_check():
         'status': 'healthy',
         'timestamp': datetime.now().isoformat()
     })
-
 @app.route('/')
-def index():
+def root():
+    # Redirect root to the dashboard page
+    return redirect(url_for('dashboard'))
+
+
+@app.route('/dashboard')
+def dashboard():
+    return render_template('dashboard.html')
+
+
+@app.route('/account')
+def account_page():
     try:
-        df = get_positions(ib=ib)
-        positions = df.to_dict('records') if not df.empty else []
         acct_info = get_account_info(ib=ib)
         managed_accounts = acct_info.get('managedAccounts', [])
         account_values = acct_info.get('accountValues', {})
-        return render_template('positions.html', positions=positions,
-                               managed_accounts=managed_accounts,
+        return render_template('account_info.html', managed_accounts=managed_accounts,
                                account_values=account_values)
+    except Exception as e:
+        return render_template('error.html', error=str(e)), 500
+
+
+@app.route('/portfolio')
+def portfolio_page():
+    try:
+        df = get_positions(ib=ib)
+        positions = df.to_dict('records') if not df.empty else []
+        # Render a portfolio page (separate template) with a Back button
+        return render_template('portfolio.html', positions=positions)
     except Exception as e:
         return render_template('error.html', error=str(e)), 500
 

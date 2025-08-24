@@ -2,38 +2,23 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>IB Positions</title>
+    <title>Portfolio</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background:#f7f7f7; }
         .card { background: #fff; padding: 20px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); max-width: 1000px; margin: 0 auto; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e6e6e6; }
         th { background: #f0f0f0; }
+        .actions { margin-top: 12px; }
+        .btn { padding:8px 12px; background:#007bff; color:#fff; border-radius:4px; text-decoration:none; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h2>Current Positions</h2>
-        {% if managed_accounts %}
-        <h3>Accounts</h3>
-        <p>Managed Accounts: {{ managed_accounts | join(', ') }}</p>
-        <div style="margin-top:8px;">
-            <h4>Account Summary</h4>
-            <table>
-                <tr><th>Account</th><th>Tag</th><th>Value</th><th>Currency</th></tr>
-                {% for acct, tags in account_values.items() %}
-                    {% for tag, entry in tags.items() %}
-                    <tr>
-                        <td>{{ acct }}</td>
-                        <td>{{ tag }}</td>
-                        <td>{{ entry.value }}</td>
-                        <td>{{ entry.currency }}</td>
-                    </tr>
-                    {% endfor %}
-                {% endfor %}
-            </table>
+        <div class="top-actions">
+            <a class="btn" href="/dashboard">Back to Dashboard</a>
         </div>
-        {% endif %}
+        <h2>Portfolio Positions</h2>
         {% if positions %}
         <table>
             <tr>
@@ -60,6 +45,8 @@
         {% else %}
         <p>No positions found.</p>
         {% endif %}
+
+        
     </div>
 </body>
 </html>

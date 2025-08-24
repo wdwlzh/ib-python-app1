@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background:#f7f7f7; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .tiles { display:flex; gap:20px; }
+        .tile { flex:1; background:#fff; padding:30px; border-radius:8px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.08); cursor:pointer; transition:transform .12s ease; }
+        .tile:hover { transform:translateY(-4px); }
+        .tile h3 { margin:0 0 8px 0; }
+        a.tile { color:inherit; text-decoration:none; display:block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Dashboard</h2>
+        <div class="tiles">
+            <a class="tile" href="/account">
+                <h3>Account Info</h3>
+                <p>View managed accounts and account summary</p>
+            </a>
+            <a class="tile" href="/portfolio">
+                <h3>Portfolio</h3>
+                <p>View current positions</p>
+            </a>
+        </div>
+    </div>
+</body>
+</html>
