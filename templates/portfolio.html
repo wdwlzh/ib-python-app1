@@ -22,6 +22,7 @@
         {% if positions %}
         <table>
             <tr>
+                <th></th>
                 <th>Account</th>
                 <th>Contract</th>
                 <th>Symbol</th>
@@ -33,19 +34,62 @@
                 <th>Avg Cost</th>
             </tr>
             {% for p in positions %}
-            <tr>
-                <td>{{ p.Account }}</td>
-                <td>{{ p.Contract }}</td>
-                <td>{{ p.Symbol }}</td>
-                <td>{{ p.LastDate if p.LastDate is not none else '' }}</td>
-                <td>{{ p.OptionType if p.OptionType is not none else '' }}</td>
-                <td>{{ "%.2f"|format(p.StrikePrice) if p.StrikePrice is not none else '' }}</td>
-                <td>{{ p.Position }}</td>
-                <td>{{ p.Currency }}</td>
-                <td>{{ "%.2f"|format(p.AvgCost if p.AvgCost is not none else 0) }}</td>
-            </tr>
+                {% if p.is_spread %}
+                <tr class="spread-parent" data-id="{{ p.id }}">
+                    <td><button class="toggle-btn" data-target="{{ p.id }}">+</button></td>
+                    <td>{{ p.Account }}</td>
+                    <td>{{ p.Contract }}</td>
+                    <td>{{ p.Symbol }}</td>
+                    <td>{{ p.LastDate if p.LastDate is not none else '' }}</td>
+                    <td>{{ p.spread_name if p.spread_name is not none else (p.OptionType if p.OptionType is not none else '') }}</td>
+                    <td>{{ p.StrikeDisplay if p.StrikeDisplay is not none else '' }}</td>
+                    <td>{{ p.Position }}</td>
+                    <td>{{ p.Currency }}</td>
+                    <td>{{ "%.2f"|format(p.AvgCost if p.AvgCost is not none else 0) }}</td>
+                </tr>
+                {% elif p.is_child %}
+                <tr class="spread-child" data-parent="{{ p.parent_id }}" style="display:none;">
+                    <td></td>
+                    <td>{{ p.Account }}</td>
+                    <td>{{ p.Contract }}</td>
+                    <td>{{ p.Symbol }}</td>
+                    <td>{{ p.LastDate if p.LastDate is not none else '' }}</td>
+                    <td>{{ p.OptionType if p.OptionType is not none else '' }}</td>
+                    <td>{{ "%.2f"|format(p.StrikePrice) if p.StrikePrice is not none else '' }}</td>
+                    <td>{{ p.Position }}</td>
+                    <td>{{ p.Currency }}</td>
+                    <td>{{ "%.2f"|format(p.AvgCost if p.AvgCost is not none else 0) }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td></td>
+                    <td>{{ p.Account }}</td>
+                    <td>{{ p.Contract }}</td>
+                    <td>{{ p.Symbol }}</td>
+                    <td>{{ p.LastDate if p.LastDate is not none else '' }}</td>
+                    <td>{{ p.OptionType if p.OptionType is not none else '' }}</td>
+                    <td>{{ "%.2f"|format(p.StrikePrice) if p.StrikePrice is not none else '' }}</td>
+                    <td>{{ p.Position }}</td>
+                    <td>{{ p.Currency }}</td>
+                    <td>{{ "%.2f"|format(p.AvgCost if p.AvgCost is not none else 0) }}</td>
+                </tr>
+                {% endif %}
             {% endfor %}
         </table>
+        <script>
+            document.addEventListener('click', function(e){
+                if(e.target && e.target.classList.contains('toggle-btn')){
+                    var id = e.target.getAttribute('data-target');
+                    var children = document.querySelectorAll('tr.spread-child[data-parent="'+id+'"]');
+                    children.forEach(function(r){
+                        if(r.style.display === 'none') r.style.display = '';
+                        else r.style.display = 'none';
+                    });
+                    // toggle symbol on button
+                    e.target.textContent = e.target.textContent === '+' ? '-' : '+';
+                }
+            });
+        </script>
         {% else %}
         <p>No positions found.</p>
         {% endif %}

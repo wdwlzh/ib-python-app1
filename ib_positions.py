@@ -110,7 +110,105 @@ def get_positions(ib: IB = None):
             # fallback to simple sort if any column missing
             grouped = grouped
 
-        return grouped
+        # Convert grouped dataframe into a list of dicts and detect option spreads.
+        records = grouped.to_dict('records') if not grouped.empty else []
+
+        output = []
+        used = set()
+        id_counter = 0
+
+        # Helper to create a safe float or None
+        def safe_float(x):
+            try:
+                return float(x)
+            except Exception:
+                return None
+
+        for idx, r in enumerate(records):
+            if idx in used:
+                continue
+
+            # Only consider option spreads when OptionType is present
+            key = (r.get('Account'), r.get('Contract'), r.get('Symbol'), r.get('LastDate'), r.get('OptionType'))
+
+            # Search for a matching leg within the same key
+            match_idx = None
+            for j in range(idx + 1, len(records)):
+                s = records[j]
+                if (s.get('Account'), s.get('Contract'), s.get('Symbol'), s.get('LastDate'), s.get('OptionType')) != key:
+                    continue
+                # check absolute position equality and opposite signs
+                pos_r = safe_float(r.get('Position')) or 0.0
+                pos_s = safe_float(s.get('Position')) or 0.0
+                if abs(abs(pos_r) - abs(pos_s)) < 1e-9 and pos_r * pos_s < 0:
+                    match_idx = j
+                    break
+
+            if match_idx is not None:
+                s = records[match_idx]
+                used.add(idx)
+                used.add(match_idx)
+                id_counter += 1
+                parent_id = f"row_{id_counter}"
+
+                # children's strike prices
+                strike1 = safe_float(r.get('StrikePrice'))
+                strike2 = safe_float(s.get('StrikePrice'))
+                if strike1 is None or strike2 is None:
+                    strike_display = ''
+                else:
+                    lo, hi = sorted([strike1, strike2])
+                    strike_display = f"{lo:.2f}-{hi:.2f}"
+
+                # compute parent AvgCost as total amount of underlying position's size * averagecost
+                # (sum of position * avgcost across legs)
+                avg1 = safe_float(r.get('AvgCost')) or 0.0
+                avg2 = safe_float(s.get('AvgCost')) or 0.0
+                pos1 = safe_float(r.get('Position')) or 0.0
+                pos2 = safe_float(s.get('Position')) or 0.0
+                total_amount = pos1 * avg1 + pos2 * avg2
+
+                # parent position shows the absolute leg size (they are equal)
+                parent_position = abs(pos1)
+
+                spread_name = None
+                ot = (r.get('OptionType') or '')
+                if str(ot).lower().startswith('c'):
+                    spread_name = 'Bear Call Spread'
+                elif str(ot).lower().startswith('p'):
+                    spread_name = 'Bull Put Spread'
+
+                parent = {
+                    'id': parent_id,
+                    'Account': r.get('Account'),
+                    'Contract': r.get('Contract'),
+                    'Symbol': r.get('Symbol'),
+                    'LastDate': r.get('LastDate'),
+                    'OptionType': r.get('OptionType'),
+                    'StrikePrice': None,
+                    'StrikeDisplay': strike_display,
+                    'Position': parent_position,
+                    'Currency': r.get('Currency'),
+                    'AvgCost': total_amount,
+                    'is_spread': True,
+                    'spread_name': spread_name
+                }
+
+                # child rows (preserve original numeric strike and avgcost)
+                child1 = dict(r)
+                child1.update({'is_child': True, 'parent_id': parent_id})
+                child2 = dict(s)
+                child2.update({'is_child': True, 'parent_id': parent_id})
+
+                output.append(parent)
+                output.append(child1)
+                output.append(child2)
+            else:
+                # normal single row
+                output.append(r)
+
+        # Return a DataFrame so callers that expect a DataFrame continue to work
+        return pd.DataFrame(output)
 
     except Exception as e:
         print(f"Error: {str(e)}")
