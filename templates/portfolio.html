@@ -29,6 +29,8 @@
                 <th>Currency</th>
                 <th>Position</th>
                 <th>Avg Cost</th>
+                <th>Daily P&amp;L</th>
+                <th>Unrealized P&amp;L</th>
             </tr>
             {% for p in positions %}
             <tr>
@@ -39,6 +41,8 @@
                 <td>{{ p.Currency }}</td>
                 <td>{{ p.Position }}</td>
                 <td>{{ "%.2f"|format(p.AvgCost if p.AvgCost is not none else 0) }}</td>
+                <td>{{ "%.2f"|format(p.DailyPnL if p.DailyPnL is not none else 0) }}</td>
+                <td>{{ "%.2f"|format(p.UnrealizedPnL if p.UnrealizedPnL is not none else 0) }}</td>
             </tr>
             {% endfor %}
         </table>
