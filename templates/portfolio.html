@@ -20,6 +20,11 @@
         </div>
         <h2>Portfolio Positions</h2>
         {% if positions %}
+        <style>
+            /* alternating row colors */
+            tr.alt { background: #fafafa; }
+            tr.spread-child { background: #fff; }
+        </style>
         <table>
             <tr>
                 <th></th>
@@ -34,44 +39,47 @@
                 <th>Avg Cost</th>
             </tr>
             {% for p in positions %}
-                {% if p.is_spread %}
-                <tr class="spread-parent" data-id="{{ p.id }}">
+                {% set row_class = 'alt' if (loop.index0 is divisibleby 2) else '' %}
+                {% set is_spread = p.get('is_spread') if p.get('is_spread') is not none else false %}
+                {% set is_child = p.get('is_child') if p.get('is_child') is not none else false %}
+                {% if is_spread %}
+                <tr class="spread-parent {{ row_class }}" data-id="{{ p.id }}">
                     <td><button class="toggle-btn" data-target="{{ p.id }}">+</button></td>
-                    <td>{{ p.Account }}</td>
-                    <td>{{ p.Contract }}</td>
-                    <td>{{ p.Symbol }}</td>
-                    <td>{{ p.LastDate if p.LastDate is not none else '' }}</td>
-                    <td>{{ p.spread_name if p.spread_name is not none else (p.OptionType if p.OptionType is not none else '') }}</td>
-                    <td>{{ p.StrikeDisplay if p.StrikeDisplay is not none else '' }}</td>
+                    <td>{{ p.Account if p.Account is not none and (p.Account|string) != 'nan' else '' }}</td>
+                    <td>{{ p.Contract if p.Contract is not none and (p.Contract|string) != 'nan' else '' }}</td>
+                    <td>{{ p.Symbol if p.Symbol is not none and (p.Symbol|string) != 'nan' else '' }}</td>
+                    <td>{{ p.LastDate if p.LastDate is not none and (p.LastDate|string) != 'nan' else '' }}</td>
+                    <td>{{ p.spread_name if p.spread_name is not none and (p.spread_name|string) != 'nan' else (p.OptionType if p.OptionType is not none and (p.OptionType|string) != 'nan' else '') }}</td>
+                    <td>{{ p.StrikeDisplay if p.StrikeDisplay is not none and (p.StrikeDisplay|string) != 'nan' else '' }}</td>
                     <td>{{ p.Position }}</td>
-                    <td>{{ p.Currency }}</td>
-                    <td>{{ "%.2f"|format(p.AvgCost if p.AvgCost is not none else 0) }}</td>
+                    <td>{{ p.Currency if p.Currency is not none and (p.Currency|string) != 'nan' else '' }}</td>
+                    <td>{{ "%.2f"|format(p.AvgCost if p.AvgCost is not none and (p.AvgCost|string) != 'nan' and p.AvgCost == p.AvgCost else 0) }}</td>
                 </tr>
-                {% elif p.is_child %}
-                <tr class="spread-child" data-parent="{{ p.parent_id }}" style="display:none;">
+                {% elif is_child %}
+                <tr class="spread-child {{ row_class }}" data-parent="{{ p.parent_id }}" style="display:none;">
                     <td></td>
-                    <td>{{ p.Account }}</td>
-                    <td>{{ p.Contract }}</td>
-                    <td>{{ p.Symbol }}</td>
-                    <td>{{ p.LastDate if p.LastDate is not none else '' }}</td>
-                    <td>{{ p.OptionType if p.OptionType is not none else '' }}</td>
-                    <td>{{ "%.2f"|format(p.StrikePrice) if p.StrikePrice is not none else '' }}</td>
+                    <td>{{ p.Account if p.Account is not none and (p.Account|string) != 'nan' else '' }}</td>
+                    <td>{{ p.Contract if p.Contract is not none and (p.Contract|string) != 'nan' else '' }}</td>
+                    <td>{{ p.Symbol if p.Symbol is not none and (p.Symbol|string) != 'nan' else '' }}</td>
+                    <td>{{ p.LastDate if p.LastDate is not none and (p.LastDate|string) != 'nan' else '' }}</td>
+                    <td>{{ p.OptionType if p.OptionType is not none and (p.OptionType|string) != 'nan' else '' }}</td>
+                    <td>{{ "%.2f"|format(p.StrikePrice) if p.StrikePrice is not none and (p.StrikePrice|string) != 'nan' and p.StrikePrice == p.StrikePrice else '' }}</td>
                     <td>{{ p.Position }}</td>
-                    <td>{{ p.Currency }}</td>
-                    <td>{{ "%.2f"|format(p.AvgCost if p.AvgCost is not none else 0) }}</td>
+                    <td>{{ p.Currency if p.Currency is not none and (p.Currency|string) != 'nan' else '' }}</td>
+                    <td>{{ "%.2f"|format(p.AvgCost if p.AvgCost is not none and (p.AvgCost|string) != 'nan' and p.AvgCost == p.AvgCost else 0) }}</td>
                 </tr>
                 {% else %}
-                <tr>
+                <tr class="{{ row_class }}">
                     <td></td>
-                    <td>{{ p.Account }}</td>
-                    <td>{{ p.Contract }}</td>
-                    <td>{{ p.Symbol }}</td>
-                    <td>{{ p.LastDate if p.LastDate is not none else '' }}</td>
-                    <td>{{ p.OptionType if p.OptionType is not none else '' }}</td>
-                    <td>{{ "%.2f"|format(p.StrikePrice) if p.StrikePrice is not none else '' }}</td>
+                    <td>{{ p.Account if p.Account is not none and (p.Account|string) != 'nan' else '' }}</td>
+                    <td>{{ p.Contract if p.Contract is not none and (p.Contract|string) != 'nan' else '' }}</td>
+                    <td>{{ p.Symbol if p.Symbol is not none and (p.Symbol|string) != 'nan' else '' }}</td>
+                    <td>{{ p.LastDate if p.LastDate is not none and (p.LastDate|string) != 'nan' else '' }}</td>
+                    <td>{{ p.OptionType if p.OptionType is not none and (p.OptionType|string) != 'nan' else '' }}</td>
+                    <td>{{ "%.2f"|format(p.StrikePrice) if p.StrikePrice is not none and (p.StrikePrice|string) != 'nan' and p.StrikePrice == p.StrikePrice else '' }}</td>
                     <td>{{ p.Position }}</td>
-                    <td>{{ p.Currency }}</td>
-                    <td>{{ "%.2f"|format(p.AvgCost if p.AvgCost is not none else 0) }}</td>
+                    <td>{{ p.Currency if p.Currency is not none and (p.Currency|string) != 'nan' else '' }}</td>
+                    <td>{{ "%.2f"|format(p.AvgCost if p.AvgCost is not none and (p.AvgCost|string) != 'nan' and p.AvgCost == p.AvgCost else 0) }}</td>
                 </tr>
                 {% endif %}
             {% endfor %}

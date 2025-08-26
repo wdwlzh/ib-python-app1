@@ -208,7 +208,20 @@ def get_positions(ib: IB = None):
                 output.append(r)
 
         # Return a DataFrame so callers that expect a DataFrame continue to work
-        return pd.DataFrame(output)
+        out_df = pd.DataFrame(output)
+
+        # Ensure boolean flag columns exist and have proper False for missing values
+        if 'is_child' in out_df.columns:
+            out_df['is_child'] = out_df['is_child'].fillna(False).astype(bool)
+        else:
+            out_df['is_child'] = False
+
+        if 'is_spread' in out_df.columns:
+            out_df['is_spread'] = out_df['is_spread'].fillna(False).astype(bool)
+        else:
+            out_df['is_spread'] = False
+
+        return out_df
 
     except Exception as e:
         print(f"Error: {str(e)}")
