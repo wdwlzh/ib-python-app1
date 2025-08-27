@@ -13,7 +13,7 @@
             "justMyCode": true
         },
         {
-            "name": "Python: Run Flask app (app.py)",
+            "name": "Debug: Web Server (Flask App)",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/app.py",
@@ -21,13 +21,63 @@
             "cwd": "${workspaceFolder}",
             "env": {
                 "FLASK_ENV": "development",
-                "PORT": "8000"
+                "FLASK_DEBUG": "1",
+                "PORT": "8001"
             },
-            // Run the app directly to avoid Flask's auto-reloader spawning a child process
+            "justMyCode": false,
+            "args": [],
+            "stopOnEntry": false
+        },
+        {
+            "name": "Debug: Data Server",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/data_server.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": false,
+            "stopOnEntry": false
+        },
+        {
+            "name": "Debug: Complete App (Start Script)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/start.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": false,
+            "stopOnEntry": false
+        },
+        {
+            "name": "Debug: Development Mode (Real-time Logs)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/start_dev.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": false,
+            "stopOnEntry": false
+        },
+        {
+            "name": "Debug: Database Operations",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/database.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
             "justMyCode": false
         },
         {
-            "name": "Python: Debug ib_positions.py",
+            "name": "Debug: Test Watchlist",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/test_watchlist.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": false
+        },
+        {
+            "name": "Debug: Portfolio (Legacy)",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/ib_positions.py",
@@ -36,10 +86,26 @@
             "justMyCode": false
         },
         {
-            "name": "Python: Attach to Process",
+            "name": "Attach: To Running Process",
             "type": "debugpy",
             "request": "attach",
-            "processId": "${command:pickProcess}"
+            "processId": "${command:pickProcess}",
+            "justMyCode": false
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Debug: Full Application",
+            "configurations": [
+                "Debug: Data Server",
+                "Debug: Web Server (Flask App)"
+            ],
+            "stopAll": true,
+            "presentation": {
+                "hidden": false,
+                "group": "Trading App",
+                "order": 1
+            }
         }
     ]
 }
