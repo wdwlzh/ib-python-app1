@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Watchlist</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background:#f7f7f7; }
+        .card { background: #fff; padding: 20px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); max-width: 1000px; margin: 0 auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e6e6e6; }
+        th { background: #f0f0f0; }
+        .actions { margin-bottom: 12px; display: flex; gap: 10px; align-items: center; }
+        .btn { padding:8px 16px; background:#007bff; color:#fff; border-radius:4px; text-decoration:none; border: none; cursor: pointer; }
+        .btn:hover { background: #0056b3; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        .btn:disabled { background: #6c757d; cursor: not-allowed; }
+        
+        /* Modal styles */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); }
+        .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border-radius: 8px; width: 300px; }
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close:hover { color: black; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        
+        /* Price styling */
+        .price-positive { color: #28a745; }
+        .price-negative { color: #dc3545; }
+        .price-neutral { color: #333; }
+        
+        /* Checkbox styling */
+        input[type="checkbox"] { margin-right: 8px; }
+        
+        /* Alternating row colors */
+        tr:nth-child(even) { background: #fafafa; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="top-actions">
+            <a class="btn" href="/dashboard">Back to Dashboard</a>
+        </div>
+        <h2>Watchlist</h2>
+        
+        <div class="actions">
+            <button class="btn" id="addBtn">Add</button>
+            <button class="btn btn-danger" id="deleteBtn" disabled>Delete</button>
+            <span id="selectedCount" style="margin-left: 10px; color: #666;"></span>
+            {% if watchlist and watchlist[0].updated_at %}
+            <span style="margin-left: 20px; color: #666; font-size: 0.9em;">
+                Last updated: {{ watchlist[0].updated_at }}
+            </span>
+            {% endif %}
+        </div>
+
+        {% if watchlist %}
+        <table id="watchlistTable">
+            <tr>
+                <th><input type="checkbox" id="selectAll"></th>
+                <th>Name</th>
+                <th>Symbol</th>
+                <th>Last Price</th>
+                <th>Change %</th>
+                <th>Volume</th>
+            </tr>
+            {% for item in watchlist %}
+            <tr>
+                <td><input type="checkbox" class="row-checkbox" data-symbol="{{ item.symbol }}"></td>
+                <td>{{ item.name }}</td>
+                <td>{{ item.symbol }}</td>
+                <td>${{ "%.2f"|format(item.last_price) }}</td>
+                <td class="{% if item.change_pct > 0 %}price-positive{% elif item.change_pct < 0 %}price-negative{% else %}price-neutral{% endif %}">
+                    {{ "%.2f"|format(item.change_pct) }}%
+                </td>
+                <td>{{ "{:,}".format(item.volume|int) }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+        <p>No symbols in watchlist. Click "Add" to add your first symbol.</p>
+        {% endif %}
+    </div>
+
+    <!-- Add Symbol Modal -->
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Add Symbol</h3>
+            <form id="addSymbolForm">
+                <div class="form-group">
+                    <label for="symbolInput">Symbol:</label>
+                    <input type="text" id="symbolInput" name="symbol" placeholder="Enter symbol (e.g., AAPL)" required>
+                </div>
+                <div style="text-align: right;">
+                    <button type="button" class="btn" style="background: #6c757d; margin-right: 10px;" onclick="closeAddModal()">Cancel</button>
+                    <button type="submit" class="btn">Add</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Modal functionality
+        const addModal = document.getElementById('addModal');
+        const addBtn = document.getElementById('addBtn');
+        const span = document.getElementsByClassName('close')[0];
+
+        addBtn.onclick = function() {
+            addModal.style.display = 'block';
+            document.getElementById('symbolInput').focus();
+        }
+
+        span.onclick = function() {
+            closeAddModal();
+        }
+
+        function closeAddModal() {
+            addModal.style.display = 'none';
+            document.getElementById('addSymbolForm').reset();
+        }
+
+        window.onclick = function(event) {
+            if (event.target == addModal) {
+                closeAddModal();
+            }
+        }
+
+        // Form submission
+        document.getElementById('addSymbolForm').onsubmit = function(e) {
+            e.preventDefault();
+            const symbol = document.getElementById('symbolInput').value.trim().toUpperCase();
+            
+            if (!symbol) {
+                alert('Please enter a symbol');
+                return;
+            }
+
+            fetch('/api/watchlist/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ symbol: symbol })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    closeAddModal();
+                    location.reload(); // Refresh the page to show the new symbol
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error adding symbol: ' + error);
+            });
+        }
+
+        // Checkbox functionality
+        const selectAllCheckbox = document.getElementById('selectAll');
+        const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+        const deleteBtn = document.getElementById('deleteBtn');
+        const selectedCount = document.getElementById('selectedCount');
+
+        function updateDeleteButton() {
+            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            deleteBtn.disabled = checkedBoxes.length === 0;
+            
+            if (checkedBoxes.length > 0) {
+                selectedCount.textContent = `${checkedBoxes.length} selected`;
+            } else {
+                selectedCount.textContent = '';
+            }
+        }
+
+        // Select all functionality
+        if (selectAllCheckbox) {
+            selectAllCheckbox.onchange = function() {
+                rowCheckboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                });
+                updateDeleteButton();
+            }
+        }
+
+        // Individual checkbox functionality
+        rowCheckboxes.forEach(checkbox => {
+            checkbox.onchange = function() {
+                if (selectAllCheckbox) {
+                    selectAllCheckbox.checked = Array.from(rowCheckboxes).every(cb => cb.checked);
+                }
+                updateDeleteButton();
+            }
+        });
+
+        // Delete functionality
+        deleteBtn.onclick = function() {
+            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            const symbols = Array.from(checkedBoxes).map(cb => cb.getAttribute('data-symbol'));
+            
+            if (symbols.length === 0) {
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to delete ${symbols.length} symbol(s)?`)) {
+                return;
+            }
+
+            fetch('/api/watchlist/remove', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ symbols: symbols })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload(); // Refresh the page to show updated watchlist
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error removing symbols: ' + error);
+            });
+        }
+
+        // Initialize
+        updateDeleteButton();
+    </script>
+</body>
+</html>

@@ -1,31 +1,20 @@
 from datetime import datetime
 import os
-from flask import Flask, render_template, jsonify, redirect, url_for
-from ib_insync import IB
-from ib_positions import get_positions
-import atexit
-from ib_positions import get_account_info
+from flask import Flask, render_template, jsonify, redirect, url_for, request
+from database import (
+    init_database, add_watchlist_symbol, remove_watchlist_symbols, 
+    get_watchlist_with_prices, get_cached_account_info, get_cached_portfolio_data,
+    COMPANY_NAMES
+)
 
 app = Flask(__name__)
 
-# Create and reuse a single IB connection (run in main thread before Flask spawns worker threads)
-ib = IB()
-try:
-    ib.connect('host.docker.internal', 7498, clientId=1)
-    print("Connected to IB at host.docker.internal:7498")
-except Exception as e:
-    print(f"Warning: could not connect to IB at startup: {e}")
+# Initialize database
+init_database()
 
-# Ensure we disconnect on container/app exit
-def _disconnect_ib():
-    try:
-        if ib.isConnected():
-            ib.disconnect()
-            print("Disconnected from IB")
-    except Exception:
-        pass
-
-atexit.register(_disconnect_ib)
+def get_company_name(symbol):
+    """Get company name for a symbol"""
+    return COMPANY_NAMES.get(symbol.upper(), symbol.upper())
 
 @app.route('/health')
 def health_check():
@@ -47,11 +36,20 @@ def dashboard():
 @app.route('/account')
 def account_page():
     try:
-        acct_info = get_account_info(ib=ib)
-        managed_accounts = acct_info.get('managedAccounts', [])
-        account_values = acct_info.get('accountValues', {})
-        return render_template('account_info.html', managed_accounts=managed_accounts,
-                               account_values=account_values)
+        # Try to get cached account info - for now, use first available account
+        # In a real app, you might want to let users select which account to view
+        account_data, updated_at = get_cached_account_info('ALL')  # placeholder for now
+        
+        if account_data:
+            managed_accounts = account_data.get('managedAccounts', [])
+            account_values = account_data.get('accountValues', {})
+            return render_template('account_info.html', 
+                                 managed_accounts=managed_accounts,
+                                 account_values=account_values,
+                                 updated_at=updated_at)
+        else:
+            return render_template('error.html', 
+                                 error="No cached account data available. Please ensure the data server is running."), 503
     except Exception as e:
         return render_template('error.html', error=str(e)), 500
 
@@ -59,14 +57,63 @@ def account_page():
 @app.route('/portfolio')
 def portfolio_page():
     try:
-        df = get_positions(ib=ib)
-        positions = df.to_dict('records') if not df.empty else []
-        # Render a portfolio page (separate template) with a Back button
-        return render_template('portfolio.html', positions=positions)
+        portfolio_data, updated_at = get_cached_portfolio_data()
+        
+        if portfolio_data:
+            return render_template('portfolio.html', 
+                                 positions=portfolio_data,
+                                 updated_at=updated_at)
+        else:
+            return render_template('error.html', 
+                                 error="No cached portfolio data available. Please ensure the data server is running."), 503
     except Exception as e:
         return render_template('error.html', error=str(e)), 500
 
+
+@app.route('/watchlist')
+def watchlist_page():
+    try:
+        watchlist_data = get_watchlist_with_prices()
+        return render_template('watchlist.html', watchlist=watchlist_data)
+    except Exception as e:
+        return render_template('error.html', error=str(e)), 500
+
+
+@app.route('/api/watchlist/add', methods=['POST'])
+def api_add_symbol():
+    try:
+        data = request.get_json()
+        symbol = data.get('symbol', '').strip().upper()
+        
+        if not symbol:
+            return jsonify({'success': False, 'message': 'Symbol is required'}), 400
+        
+        # Get company name
+        company_name = get_company_name(symbol)
+        
+        success, message = add_watchlist_symbol(symbol, company_name)
+        return jsonify({'success': success, 'message': message})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/watchlist/remove', methods=['POST'])
+def api_remove_symbols():
+    try:
+        data = request.get_json()
+        symbols = data.get('symbols', [])
+        
+        if not symbols:
+            return jsonify({'success': False, 'message': 'No symbols provided'}), 400
+        
+        success, message = remove_watchlist_symbols(symbols)
+        return jsonify({'success': success, 'message': message})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 8000))
-    # Leave threaded=True; IB connection was created in main thread so event-loop issues are avoided.
-    app.run(host='0.0.0.0', port=port, threaded=True)
+    # Run with threading enabled since we're not using IB connection directly
+    app.run(host='0.0.0.0', port=port, threaded=True, debug=True)
